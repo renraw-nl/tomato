@@ -6,11 +6,12 @@ repos:
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
+    -   id: mixed-line-ending
+    -   id: debug-statements
     -   id: check-yaml
-    -   id: check-added-large-files
     -   id: check-ast
     -   id: check-toml
-    -   id: debug-statements
+    -   id: check-added-large-files
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: 3a6eb0f
     hooks:
