@@ -1,7 +1,7 @@
-from typing import Iterable
+from typing import Any, Iterable, Iterator
 
 
-def loop_flag_first(loop_over: Iterable) -> tuple[..., bool]:
+def loop_flag_first(loop_over: Iterable) -> Iterator[tuple[Any, bool]]:
     """Loop over an iterable and flag it is the __first__ in the loop."""
     it = iter(loop_over)
     first = next(it)
@@ -12,7 +12,7 @@ def loop_flag_first(loop_over: Iterable) -> tuple[..., bool]:
         yield val, False
 
 
-def loop_flag_last(loop_over: Iterable) -> tuple[..., bool]:
+def loop_flag_last(loop_over: Iterable) -> Iterator[tuple[Any, bool]]:
     """Loop over an iterable and flag it is the __last__ in the loop."""
     it = iter(loop_over)
     prev = next(it)
@@ -24,7 +24,7 @@ def loop_flag_last(loop_over: Iterable) -> tuple[..., bool]:
     yield prev, True
 
 
-def loop_flag_first_last(loop_over: Iterable) -> tuple[..., bool]:
+def loop_flag_first_last(loop_over: Iterable) -> Iterator[tuple[Any, bool]]:
     """Loop over an iterable and flag if it is either the __first or the last__."""
     it = iter(loop_over)
     first = next(it)

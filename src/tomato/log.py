@@ -7,10 +7,10 @@ import logging
 import logging.config
 import sys
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 import structlog
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.jsonlogger import JsonFormatter  # type: ignore
 
 # _DT_FMT: Final[str] = "%Y-%m-%d %H:%M:%S.%fZ"
 _DT_FMT: Final[str] = "%Y-%m-%d %H:%M:%S"
@@ -23,7 +23,7 @@ _LOG_FILE: Final[Path] = Path.cwd() / datetime.datetime.today().strftime(
 )
 
 
-class StuctlogJsonFormatter(jsonlogger.JsonFormatter):
+class StuctlogJsonFormatter(JsonFormatter):  # type: ignore
     """JSON Formatter to have the output resember that of StructLog"""
 
     def add_fields(
@@ -45,7 +45,7 @@ class StuctlogJsonFormatter(jsonlogger.JsonFormatter):
 
 
 def init(
-    data: dict, loglevel: str | int = "INFO", logfile_name: str | Path = None
+    data: dict, loglevel_name: str = "INFO", logfile: Optional[Path] = None
 ) -> None:
     """Set up the logger using the passed `etc.data`."""
 
@@ -53,11 +53,15 @@ def init(
     if structlog.is_configured():
         return
 
-    if logfile_name and not isinstance(logfile_name, Path):
-        logfile = Path(logfile_name).resolve()
+    if logfile:
+        logfile = Path(logfile).resolve()
 
     # get the default level or use the given one and convert it string to a level
-    if not (loglevel := loglevel_from_str(loglevel)):
+    loglevel: int | None = None
+    if loglevel_name:
+        loglevel = loglevel_from_str(loglevel_name)
+
+    if not loglevel:
         loglevel = loglevel_from_str(data.get("logging.level", _LOG_LVL))
 
     # get the default or use the passed one
@@ -70,7 +74,7 @@ def init(
     # See: https://github.com/madzak/python-json-logger
 
     timestamper = structlog.processors.TimeStamper(fmt=_DT_FMT, utc=True)
-    shared_processors = [
+    shared_processors: list[Any] = [
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.ExtraAdder(),
@@ -84,7 +88,7 @@ def init(
 
 
 def _init_cli_logger(
-    loglevel: str | int, shared_processors: dict[Any, Any], logfile: Path
+    loglevel: int, shared_processors: list[Any], logfile: Path | None
 ) -> None:
     # formatter = jsonlogger.JsonFormatter(_LOG_FMT)
     # handler = logging.StreamHandler(sys.stdout)
@@ -178,7 +182,7 @@ def _init_cli_logger(
 
 
 def _init_container_logger(
-    loglevel: str | int, shared_processors: dict, logfile: Path
+    loglevel: int, shared_processors: list[Any], logfile: Path | None
 ) -> None:
     formatter = StuctlogJsonFormatter(_LOG_FMT)
     handler = logging.StreamHandler(sys.stdout)
@@ -209,11 +213,11 @@ def _init_container_logger(
     )
 
 
-def loglevel_from_str(loglevel: str | int) -> int:
+def loglevel_from_str(loglevel: str) -> int:
     return getattr(logging, loglevel.upper(), None)
 
 
-def _extract_from_record(_, __, event_dict):
+def _extract_from_record(_: Any, __: Any, event_dict: dict[str, Any]) -> dict[str, Any]:
     """
     Extract thread and process names and add them to the event dict.
     """

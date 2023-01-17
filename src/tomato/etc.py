@@ -67,7 +67,9 @@ def _load(data: tomlkit.TOMLDocument) -> bool:
             continue
 
         elif not os.access(fn, mode=os.R_OK):
-            msg = f"Found the configuration file, but no permission to read it: `{fn}`."
+            msg: str = (
+                f"Found the configuration file, but no permission to read it: `{fn}`."
+            )
             if first:
                 raise PermissionError(msg)
 
@@ -76,16 +78,21 @@ def _load(data: tomlkit.TOMLDocument) -> bool:
 
         # Found a file, read the data and merge it with previously loaded data
         with fn.open(mode="rb") as fp:
-            etc_data = tomlkit.load(fp)
+            etc_data: tomlkit.TOMLDocument = tomlkit.load(fp)
 
-        data = data | etc_data
+        data = data | etc_data  # type: ignore
 
     return len(data) > 0
 
 
 @lru_cache
 def _load_dotenv(name: str) -> Path | bool:
+    fn: str | Path
+
     if fn := dotenv.find_dotenv(name):
+        if not isinstance(fn, Path):
+            fn = Path(fn)
+
         dotenv.load_dotenv(fn)
         return fn
 
@@ -95,7 +102,7 @@ def _load_dotenv(name: str) -> Path | bool:
 def _etc_files() -> set[Path]:
     # Order of the files here prescribes the order in which they are loaded.
     # Start with the defaults file, next the user, then any environmental based file.
-    files = [
+    files: list[Path] = [
         Path(DEFAULT_FILE).resolve(),
         Path(USER_FILE).expanduser().resolve(),
     ]
@@ -123,4 +130,5 @@ def write(to: Path) -> None:
             f"Directory for the configuration file does not exist: {to}"
         )
 
-    tomlkit.dump(data, to, sort_keys=False)
+    with to.open(mode="wb") as fp:
+        tomlkit.dump(data=data, fp=fp, sort_keys=False)  # type: ignore

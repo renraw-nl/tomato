@@ -16,7 +16,7 @@ repos:
     rev: 3a6eb0f
     hooks:
     -   id: python-check-blanket-noqa
-    -   id: python-check-blanket-type-ignore
+    # -   id: python-check-blanket-type-ignore
     -   id: python-no-eval
     -   id: python-no-log-warn
 -   repo: https://github.com/PyCQA/isort

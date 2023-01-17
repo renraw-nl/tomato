@@ -81,7 +81,7 @@ def main(
         callback=_version_callback,
         is_eager=True,
     ),
-):
+) -> None:
     """Main CLI entry point.
 
     This callback is always run before any command.
