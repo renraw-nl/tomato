@@ -1,6 +1,10 @@
 """Logger
 
 Setup the logger based on the configuration data.
+
+TODO:
+- Clean up `type: ignore`,
+- Clean up options for logging and level settings (`stdout`, but in: `json` or `rich`)
 """
 import datetime
 import logging
@@ -12,7 +16,6 @@ from typing import Any, Final, Optional
 import structlog
 from pythonjsonlogger.jsonlogger import JsonFormatter  # type: ignore
 
-# _DT_FMT: Final[str] = "%Y-%m-%d %H:%M:%S.%fZ"
 _DT_FMT: Final[str] = "%Y-%m-%d %H:%M:%S"
 _LOG_LVL = "INFO"
 _LOG_FMT: Final[
@@ -32,6 +35,8 @@ class StuctlogJsonFormatter(JsonFormatter):  # type: ignore
         record: logging.LogRecord,
         message_dict: dict[str, Any],
     ) -> None:
+        """Ensure several fields are part of the JSON log to be recorded."""
+
         super(self.__class__, self).add_fields(log_record, record, message_dict)
         if not log_record.get("timestamp"):
             log_record["timestamp"] = datetime.datetime.utcfromtimestamp(
@@ -90,6 +95,8 @@ def init(
 def _init_cli_logger(
     loglevel: int, shared_processors: list[Any], logfile: Path | None
 ) -> None:
+    """Setup logger for interactive command lines."""
+
     # formatter = jsonlogger.JsonFormatter(_LOG_FMT)
     # handler = logging.StreamHandler(sys.stdout)
     # handler.setFormatter(formatter)
@@ -184,6 +191,7 @@ def _init_cli_logger(
 def _init_container_logger(
     loglevel: int, shared_processors: list[Any], logfile: Path | None
 ) -> None:
+    """Setup logger for use in a container, ie wrapped in a program."""
     formatter = StuctlogJsonFormatter(_LOG_FMT)
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
@@ -213,7 +221,8 @@ def _init_container_logger(
     )
 
 
-def loglevel_from_str(loglevel: str) -> int:
+def loglevel_from_str(loglevel: str) -> int | None:
+    """Convert the level string to its integer."""
     return getattr(logging, loglevel.upper(), None)
 
 
