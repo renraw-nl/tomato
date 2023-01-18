@@ -10,6 +10,9 @@ Order of loading, and thus in reverse priority;
 
 `TOMATO_ETC_FILE` can be set in the terminal or loaded via the dotenv file
 (`DOTENV_FILE`).
+
+TODO:
+- Clean up `type: ignore`
 """
 
 import os
@@ -21,7 +24,7 @@ import dotenv
 import structlog
 import tomlkit
 
-from .utils import loop_flag_first
+from .utils import flag_first_in_loop
 
 # Files where the configuration is expected.
 
@@ -39,36 +42,37 @@ data: tomlkit.TOMLDocument | None = None
 
 
 def init(reload: bool = False) -> None:
-    """Initiase and load configuration data."""
+    """Initiase and load configuration data.
+
+    When called multiple times, the found data replaces any previously set information.
+    When called with `reload=True`, all previously existing configuration data is
+    replaced with the newly found information.
+    """
     global data
 
-    if not isinstance(data, tomlkit.TOMLDocument) or reload:
-        data = tomlkit.document()
-
-    if fn := _load_dotenv(DOTENV_FILE):
+    if fn := find_dotenv(DOTENV_FILE):
         logger.debug(f"Loaded dotenv file: `{fn}`.")
 
-    if not _load(data):
-        logger.warning("No configuration data loaded, not even from the default file.")
+    if not (files := src_files()):
+        logger.warning("No configuration files found, not even the default file.")
+
+    elif not (found := load_files(files)):
+        logger.warning("No configuration data found from the found files.", files=files)
+
+    if not isinstance(data, tomlkit.TOMLDocument) or reload:
+        data = found
+    else:
+        data = data | found
 
 
-def _load(data: tomlkit.TOMLDocument) -> bool:
-    # Note that the order of the files here is important. The first is assumed to be
-    # the defaults file. Files loaded after that, replace previously set
-    # configuration values.
-    files: set[Path] = _etc_files()
+def load_files(files: list[Path]) -> tomlkit.TOMLDocument:
+    """Load configurations from multiple files."""
 
-    for fn, first in loop_flag_first(files):
-        if not fn.exists():
-            if first:
-                raise FileNotFoundError(
-                    f"Unable to find default configuration data with: `{fn}`."
-                )
-            continue
-
-        elif not os.access(fn, mode=os.R_OK):
+    data = tomlkit.document()
+    for fn, first in flag_first_in_loop(files):
+        if not os.access(fn, mode=os.R_OK):
             msg: str = (
-                f"Found the configuration file, but no permission to read it: `{fn}`."
+                f"Skipped configuration file, due to lack of read permission: `{fn}`."
             )
             if first:
                 raise PermissionError(msg)
@@ -80,13 +84,17 @@ def _load(data: tomlkit.TOMLDocument) -> bool:
         with fn.open(mode="rb") as fp:
             etc_data: tomlkit.TOMLDocument = tomlkit.load(fp)
 
-        data = data | etc_data  # type: ignore
+        if etc_data:
+            data = data | etc_data  # type: ignore
 
-    return len(data) > 0
+    return data
 
 
 @lru_cache
-def _load_dotenv(name: str) -> Path | bool:
+def find_dotenv(name: str) -> Path | bool:
+    """
+    Find file with environmental info in the parents of the current working directory.
+    """
     fn: str | Path
 
     if fn := dotenv.find_dotenv(name):
@@ -99,7 +107,17 @@ def _load_dotenv(name: str) -> Path | bool:
     return False
 
 
-def _etc_files() -> set[Path]:
+def src_files() -> list[Path]:
+    """Gather expected configuration files.
+
+    Uses `DEFAULT_FILE` and `USER_FILE`, as well as `OS_ENV_KEY` environmental variable
+    to find the files.
+
+    The order of files inserted into the `files`-list determines the order in which the
+    files are read and its data loaded. Information in subsequent files takes precedence
+    over previously loaded ones.
+    """
+
     # Order of the files here prescribes the order in which they are loaded.
     # Start with the defaults file, next the user, then any environmental based file.
     files: list[Path] = [
@@ -110,7 +128,7 @@ def _etc_files() -> set[Path]:
     if OS_ENV_KEY in os.environ:
         files.append(Path(os.environ.get(OS_ENV_KEY)).resolve())
 
-    return set(files)
+    return filter(lambda fn: fn.exists(), set(files))
 
 
 def write(to: Path) -> None:
@@ -120,12 +138,12 @@ def write(to: Path) -> None:
         raise PermissionError(
             f"No write permission to existing configuration file at: {to}."
         )
-    elif to.parent.exists() and not os.access(to.parent, os.W_OK):
+    elif (parent_exists := to.parent.exists()) and not os.access(to.parent, os.W_OK):
         raise PermissionError(
             "No write permission to the directory of the planned"
             f"configuration file: {to}."
         )
-    elif to.parent.exists():
+    elif not parent_exists:
         raise FileNotFoundError(
             f"Directory for the configuration file does not exist: {to}"
         )
