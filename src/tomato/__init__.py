@@ -24,7 +24,7 @@ def init(loglevel: str = "INFO", logfile: Path = None) -> None:
         `log`   : Logger
         `times` : Registered times
     """
-    etc.init()
+    etc.init(reload=True)
     log.init(etc.data, loglevel, logfile)
     # times.init(etc.data)
 
