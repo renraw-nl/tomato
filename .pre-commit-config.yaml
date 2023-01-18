@@ -47,3 +47,7 @@ repos:
     rev: df034f88
     hooks:
     -   id: check-poetry
+-   repo: https://github.com/econchick/interrogate
+    rev: 1.5.0  # or master if you're bold
+    hooks:
+    -   id: interrogate
