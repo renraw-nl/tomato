@@ -22,10 +22,14 @@ repos:
     # -   id: python-check-blanket-type-ignore
     -   id: python-no-eval
     -   id: python-no-log-warn
--   repo: https://github.com/PyCQA/isort
-    rev: 03a9949
+-   repo: https://github.com/econchick/interrogate
+    rev: 1.5.0  # or master if you're bold
     hooks:
-    -   id: isort
+    -   id: interrogate
+-   repo: https://github.com/codespell-project/codespell
+    rev: f7ef43a
+    hooks:
+    -   id: codespell
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.3.1
     hooks:
@@ -43,10 +47,10 @@ repos:
 #     rev: 0b037c2
 #     hooks:
 #     -   id: mypy
--   repo: https://github.com/codespell-project/codespell
-    rev: f7ef43a
+-   repo: https://github.com/PyCQA/isort
+    rev: 03a9949
     hooks:
-    -   id: codespell
+    -   id: isort
 -   repo: https://github.com/jackdewinter/pymarkdown
     rev: b412b58
     hooks:
@@ -55,7 +59,3 @@ repos:
     rev: df034f88
     hooks:
     -   id: check-poetry
--   repo: https://github.com/econchick/interrogate
-    rev: 1.5.0  # or master if you're bold
-    hooks:
-    -   id: interrogate
