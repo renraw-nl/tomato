@@ -34,6 +34,7 @@ isort = "^5.11.4"
 ruff = "^0.0.213"
 mypy = "^0.991"
 pre-commit = "^2.21.0"
+interrogate = "^1.5.0"
 
 
 [build-system]
@@ -54,6 +55,11 @@ tomato = 'tomato.api.cli:app'
 # addopts = "--no-cov-on-fail --showlocals --strict-markers"
 addopts = "--showlocals --strict-markers"
 testpaths = ["tests"]
+norecursedirs = "_build var* .*cache .vscode .venv"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
 
 [tool.mypy]
 allow_redefinition = true
@@ -78,16 +84,14 @@ target-version = ["py311"]
 exclude = '''
 /(
    \.git
-  | \.ruff_cache
   | \.mypy_cache
-  | \.vscode
-  | \.tox
-  | venv
+  | \.pytest_cache
+  | \.ruff_cache
   | \.venv
-  | _build
-  | buck-out
+  | \.vscode
   | build
   | dist
+  | var
 )/
 '''
 
@@ -115,7 +119,7 @@ ignore-nested-functions = false
 ignore-nested-classes = true
 ignore-setters = false
 fail-under = 80
-exclude = ["docs", "build", ".venv", "var"]
+exclude = ["docs", "build", ".venv", "var", ".*_cache"]
 ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
 verbose = 0
 quiet = false
