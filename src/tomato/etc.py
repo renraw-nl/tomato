@@ -13,10 +13,11 @@ Order of loading, and thus in reverse priority;
 
 TODO:
 - Clean up `type: ignore`
+- Provide dotted get/set() methods
 """
 
 import os
-from functools import lru_cache
+from itertools import chain
 from pathlib import Path
 from typing import Final
 
@@ -24,7 +25,7 @@ import dotenv
 import structlog
 import tomlkit
 
-from .utils import flag_first_in_loop
+from tomato.utils import merge_dicts
 
 # Files where the configuration is expected.
 
@@ -38,11 +39,12 @@ OS_ENV_KEY: Final[str] = "TOMATO_ETC_FILE"
 logger: structlog.stdlib.BoundLogger = structlog.getLogger(__name__)
 
 # The writable configuration container
-data: tomlkit.TOMLDocument | None = None
+data: tomlkit.TOMLDocument = None
 
 
 def init(reload: bool = False) -> None:
-    """Initiase and load configuration data.
+    """
+    Initiase and load configuration data.
 
     When called multiple times, the found data replaces any previously set information.
     When called with `reload=True`, all previously existing configuration data is
@@ -50,64 +52,79 @@ def init(reload: bool = False) -> None:
     """
     global data
 
-    if fn := find_dotenv(DOTENV_FILE):
-        logger.debug(f"Loaded dotenv file: `{fn}`.")
+    dotenv_fn: Path | None = env_etc_file(DOTENV_FILE)
+    files: list[Path]
+    found: tomlkit.TOMLDocument
 
-    if not (files := src_files()):
+    if not (files := etc_files(dotenv_fn)):
         logger.warning("No configuration files found, not even the default file.")
 
-    elif not (found := load_files(files)):
+    elif not (found := load_etc_files(files)):
         logger.warning("No configuration data found from the found files.", files=files)
 
-    if not isinstance(data, tomlkit.TOMLDocument) or reload:
+    else:
+        logger.debug("Etc files", files=files)
+
+    if not data or reload or not isinstance(data, tomlkit.TOMLDocument):
         data = found
     else:
-        data = data | found
+        merge_dicts(data, found)
 
 
-def load_files(files: list[Path]) -> tomlkit.TOMLDocument:
+def load_etc_files(files: list[Path]) -> tomlkit.TOMLDocument:
     """Load configurations from multiple files."""
 
-    data = tomlkit.document()
-    for fn, first in flag_first_in_loop(files):
-        if not os.access(fn, mode=os.R_OK):
-            msg: str = (
-                f"Skipped configuration file, due to lack of read permission: `{fn}`."
-            )
-            if first:
-                raise PermissionError(msg)
+    loaded_data: tomlkit.TOMLDocument = tomlkit.document()
+    for fn in files:
+        try:
+            with fn.open(mode="rb") as fp:
+                fn_data: tomlkit.TOMLDocument = tomlkit.load(fp)
 
-            logger.warning(msg)
+        except PermissionError:
+            logger.warning(
+                "Skipped configuration file due to lack of read permission", file=fn
+            )
             continue
 
         # Found a file, read the data and merge it with previously loaded data
-        with fn.open(mode="rb") as fp:
-            etc_data: tomlkit.TOMLDocument = tomlkit.load(fp)
+        merge_dicts(loaded_data, fn_data)
 
-        if etc_data:
-            data = data | etc_data  # type: ignore
-
-    return data
+    return loaded_data
 
 
-@lru_cache
-def find_dotenv(name: str) -> Path | bool:
+def env_etc_file(name: str) -> Path | None:
     """
-    Find file with environmental info in the parents of the current working directory.
+    Find `OS_ENV_KEY` with a reference to a configuration file to load last.
+
+    In case `OS_ENV_KEY` does not exists, a dotenv file with `name` is loaded when it
+    exists in the current folder or any of its parents.
+
+    The dotenv file should provide a `OS_ENV_KEY`, of which its value is than used as a
+    configuration file.
     """
     fn: str | Path
 
-    if fn := dotenv.find_dotenv(name):
-        if not isinstance(fn, Path):
-            fn = Path(fn)
+    # In case an OS key already exists, don't looking for the dotenv.
+    if OS_ENV_KEY not in os.environ and (fn := dotenv.find_dotenv(name)):
+        fn = Path(fn)
 
         dotenv.load_dotenv(fn)
-        return fn
+        logger.debug("Found and loaded dotenv file", name=name, fn=fn)
 
-    return False
+    if OS_ENV_KEY in os.environ:
+        cfg_fn: str = os.environ.get(OS_ENV_KEY)
+        logger.debug(
+            "Found `OS_ENV_KEY` in environment variables",
+            os_env_key=OS_ENV_KEY,
+            value=cfg_fn,
+        )
+
+        return Path(cfg_fn)
+
+    return None
 
 
-def src_files() -> list[Path]:
+def etc_files(*extra_files: Path) -> list[Path]:
     """Gather expected configuration files.
 
     Uses `DEFAULT_FILE` and `USER_FILE`, as well as `OS_ENV_KEY` environmental variable
@@ -121,14 +138,21 @@ def src_files() -> list[Path]:
     # Order of the files here prescribes the order in which they are loaded.
     # Start with the defaults file, next the user, then any environmental based file.
     files: list[Path] = [
-        Path(DEFAULT_FILE).resolve(),
-        Path(USER_FILE).expanduser().resolve(),
+        Path(DEFAULT_FILE),
+        Path(USER_FILE),
     ]
 
-    if OS_ENV_KEY in os.environ:
-        files.append(Path(os.environ.get(OS_ENV_KEY)).resolve())
+    fns: list = []
+    for fn in chain(files, extra_files):
+        try:
+            fn = fn.expanduser().resolve()
+        except AttributeError:
+            continue
 
-    return filter(lambda fn: fn.exists(), set(files))
+        if fn not in fns and fn.exists():
+            fns.append(fn)
+
+    return fns
 
 
 def write(to: Path) -> None:

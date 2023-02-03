@@ -16,7 +16,7 @@ __app_name__ = __package__
 __version__ = version(__package__)
 
 
-def init(loglevel: str = "INFO", logfile: Path = None) -> None:
+def init(loglevel_name: str | None = None, logfile: Path | None = None) -> None:
     """Setup the key parts
 
     PARTS:
@@ -25,10 +25,18 @@ def init(loglevel: str = "INFO", logfile: Path = None) -> None:
         `times` : Registered times
     """
     etc.init(reload=True)
-    log.init(etc.data, loglevel, logfile)
-    # times.init(etc.data)
 
-    structlog.get_logger().debug("Initialised")
+    if not loglevel_name:
+        loglevel_name = etc.data.get("logging.level", None)
+
+    if not logfile:
+        logfile = etc.data.get("logging.logfile", None)
+
+    log.init(loglevel_name, logfile)
+    # times.init(etc.data)
+    # print(etc.data["tool"]["black"]["exclude"])
+
+    structlog.get_logger().debug("Initialised", etc=etc.data)
 
 
 # not further used, clean the scope
