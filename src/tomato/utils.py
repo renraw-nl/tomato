@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from types import GeneratorType
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any
 
 
 def flag_first_in_loop(loop_over: Iterable) -> Iterator[tuple[Any, bool]]:
@@ -69,3 +70,18 @@ def chain_callables(*functions: Callable) -> Callable:
         return generator
 
     return run_all_on
+
+
+def merge_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
+    """
+    Add dict `d2` to dict `d1`.
+
+    From [poetry.utils.helper](https://github.com/python-poetry/poetry/blob/master/ \
+        src/poetry/utils/helpers.py)
+    """
+
+    for k in d2.keys():
+        if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], Mapping):
+            merge_dicts(d1[k], d2[k])
+        else:
+            d1[k] = d2[k]
