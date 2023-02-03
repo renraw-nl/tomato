@@ -81,22 +81,19 @@ def _log_file_callback(fn: str | Path) -> Path | None:
 
 @app.callback()
 def main(
-    log: str
-    | None = typer.Option(
+    log: str = typer.Option(
         "INFO",
         "--log",
         help="Set the log and verbosity level [DEBUG, INFO, WARNING, ERROR].",
         callback=_log_level_callback,
     ),
-    logfile: Path
-    | None = typer.Option(
+    logfile: Path = typer.Option(
         None,
         "--logfile",
         help="Log file to use, must be writable.",
         callback=_log_file_callback,
     ),
-    version: bool
-    | None = typer.Option(
+    version: bool = typer.Option(
         None,
         "--version",
         help="Print version information and exit.",
