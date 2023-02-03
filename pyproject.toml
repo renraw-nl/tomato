@@ -59,6 +59,7 @@ norecursedirs = "_build var* .*cache .vscode .venv"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "serial",
+    "cli",
 ]
 
 [tool.mypy]
