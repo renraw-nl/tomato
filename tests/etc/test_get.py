@@ -57,30 +57,72 @@ def test_get_defaults(etc_data: ...) -> None:
     assert obj is etc.get("table2", "foo", default_value=obj)
     assert None is etc.get("table2", "foo", default_value=None)
 
+    print("testing")
+
 
 @pytest.mark.etc
-def test_get_no_defaults(etc_data: ...) -> None:
+@pytest.mark.parametrize(
+    "keys",
+    [
+        ("table.unknown_key",),
+        ("table", "unknown_key"),
+        ("table2", "foo"),
+    ],
+)
+def test_get_no_defaults(etc_data: ..., keys: list[str]) -> None:
     """Non-existing keys without default values."""
     with pytest.raises(KeyError):
-        etc.get("table", "unknown_key")
-        etc.get("table2", "array")
-        etc.get("table", "foo")
-        etc.get("unknown_key")
-        etc.get("table.no_exists")
+        etc.get(*keys)
 
 
 @pytest.mark.etc
-def test_get_errors(etc_data: ...) -> None:
+@pytest.mark.parametrize(
+    "keys",
+    [
+        (
+            [
+                "table.unknown_key",
+            ],
+        ),
+        (["table", "unknown_key"],),
+        (
+            [
+                "table2",
+            ],
+            "array",
+        ),
+        (
+            "table2",
+            [
+                "array",
+            ],
+        ),
+    ],
+)
+def test_get_errors_attr(etc_data: ..., keys: list[str]) -> None:
     """Invalid keys."""
     with pytest.raises(AttributeError):
-        etc.get(["table", "foo"])
-        etc.get(
-            "table",
+        etc.get(*keys)
+
+
+@pytest.mark.etc
+@pytest.mark.parametrize(
+    "keys",
+    [
+        (
+            "table2",
+            "array",
             [
-                "foo",
+                2,
             ],
-        )
-        etc.get("table", "array", 2.0)
+        ),
+        (),
+    ],
+)
+def test_get_errors_type(etc_data: ..., keys: list[str]) -> None:
+    """Invalid keys."""
+    with pytest.raises(TypeError):
+        etc.get(*keys)
 
 
 @pytest.mark.etc
@@ -88,8 +130,28 @@ def test_get_empty(etc_data: ...) -> None:
     """Calls without `keys`."""
     with pytest.raises(TypeError):
         etc.get()
-        etc.get(default_value=None)
-        etc.get(default_value=etc.DEFAULT_VALUE)
-        etc.get(keys=["table", "foo"])
-        etc.get(keys="table2.array.0")
-        etc.get(keys="table.not.exists")
+
+
+@pytest.mark.etc
+@pytest.mark.parametrize("defaults", [None, etc.DEFAULT_VALUE])
+def test_get_empty_defs(etc_data: ..., defaults: ...) -> None:
+    """Calls without `keys`."""
+    with pytest.raises(TypeError):
+        etc.get(default_value=defaults)
+
+
+@pytest.mark.etc
+@pytest.mark.parametrize(
+    "keys",
+    [
+        "table",
+        [
+            "table",
+        ],
+        "table.foo",
+        ["table", "not_exists"],
+    ],
+)
+def test_get_named_keys(etc_data: ..., keys: ...) -> None:
+    with pytest.raises(TypeError):
+        etc.get(keys=keys)
