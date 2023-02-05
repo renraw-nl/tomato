@@ -82,7 +82,7 @@ def _log_file_callback(fn: str | Path) -> Path | None:
 @app.callback()
 def main(
     log: str = typer.Option(
-        "INFO",
+        None,
         "--log",
         help="Set the log and verbosity level [DEBUG, INFO, WARNING, ERROR].",
         callback=_log_level_callback,
