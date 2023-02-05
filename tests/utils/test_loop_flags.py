@@ -1,8 +1,9 @@
-# import pytest
+import pytest
 
 from tomato import utils
 
 
+@pytest.mark.utils
 def test_first_in_loop():
     """Is the flag true for the first in the iteration?"""
     output = []
@@ -14,6 +15,7 @@ def test_first_in_loop():
     assert output == expected
 
 
+@pytest.mark.utils
 def test_last_in_loop():
     """Is the flag true for the first in the iteration?"""
     output = []
@@ -25,6 +27,7 @@ def test_last_in_loop():
     assert output == expected
 
 
+@pytest.mark.utils
 def test_ends_in_loop():
     """Is the flag true for the first in the iteration?"""
     output = []

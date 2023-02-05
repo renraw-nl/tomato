@@ -5,6 +5,7 @@ import pytest
 from tomato import utils
 
 
+@pytest.mark.utils
 def test_callable_chain_basic() -> None:
     """Basic usage."""
 
@@ -15,6 +16,7 @@ def test_callable_chain_basic() -> None:
     assert output == expected
 
 
+@pytest.mark.utils
 def test_callable_chain_complexer() -> None:
     """Slightly more complex."""
 
@@ -25,6 +27,7 @@ def test_callable_chain_complexer() -> None:
     assert output == expected
 
 
+@pytest.mark.utils
 def test_callable_chain_raise() -> None:
     """Check raising an Exception."""
 
