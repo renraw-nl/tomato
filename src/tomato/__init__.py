@@ -27,10 +27,10 @@ def init(loglevel_name: str | None = None, logfile: Path | None = None) -> None:
     etc.init(reload=True)
 
     if not loglevel_name:
-        loglevel_name = etc.get("logging.level", None)
+        loglevel_name = etc.get("logging.level", default_value=None)
 
     if not logfile:
-        logfile = etc.get("logging.logfile", None)
+        logfile = etc.get("logging.logfile", default_value=None)
 
     log.init(loglevel_name, logfile)
     # times.init(etc.data)
