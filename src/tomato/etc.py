@@ -94,21 +94,18 @@ def load_etc_files(files: list[Path]) -> tomlkit.TOMLDocument:
 
 def env_etc_file(name: str) -> Path | None:
     """
-    Find `OS_ENV_KEY` with a reference to a configuration file to load last.
-
-    In case `OS_ENV_KEY` does not exists, a dotenv file with `name` is loaded when it
-    exists in the current folder or any of its parents.
+    Find `OS_ENV_KEY` with a reference to a configuration file to load.
 
     The dotenv file should provide a `OS_ENV_KEY`, of which its value is than used as a
-    configuration file.
+    configuration file. The file is loaded with `override=False` so prevent overloading
+    variables set by the environment.
     """
     fn: str | Path
 
-    # In case an OS key already exists, don't looking for the dotenv.
-    if OS_ENV_KEY not in os.environ and (fn := dotenv.find_dotenv(name)):
+    if fn := dotenv.find_dotenv(name):
         fn = Path(fn)
 
-        dotenv.load_dotenv(fn)
+        dotenv.load_dotenv(fn, override=False)
         logger.debug("Found and loaded dotenv file", name=name, fn=fn)
 
     if OS_ENV_KEY in os.environ:
