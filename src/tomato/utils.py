@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable, Iterator, Mapping
+from pathlib import Path
 from types import GeneratorType
 from typing import Any
 
@@ -85,3 +86,29 @@ def merge_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
             merge_dicts(d1[k], d2[k])
         else:
             d1[k] = d2[k]
+
+
+def expand_path(fn: Path) -> Path:
+    """Expand and return and absolute path."""
+
+    if fn.is_absolute():
+        return fn
+
+    return fn.expanduser().resolve()
+
+
+def filter_paths(*files: Path | str) -> list[Path]:
+    """Return a list of unique existing Paths."""
+
+    fns: list = []
+    for fn in files:
+        try:
+            fn = expand_path(fn)
+        except AttributeError:
+            # Done to prevent having to check if the instance is a Path object.
+            fn = expand_path(Path(fn))
+
+        if fn not in fns and fn.exists():
+            fns.append(fn)
+
+    return fns
