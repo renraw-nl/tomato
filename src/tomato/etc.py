@@ -52,7 +52,7 @@ def init(reload: bool = False) -> None:
     """
     global data
 
-    found_files: list[Path] = gather_files()
+    found_files: list[Path] = _gather_files()
     found_data: tomlkit.TOMLDocument
 
     if not (filtered_files := filter_paths(*found_files)):
@@ -61,7 +61,7 @@ def init(reload: bool = False) -> None:
             files=found_files,
         )
 
-    elif not (found_data := load_etc_data(*filtered_files)):
+    elif not (found_data := _load_files(*filtered_files)):
         logger.warning(
             "No configuration data found from the found files.", files=filtered_files
         )
@@ -75,17 +75,17 @@ def init(reload: bool = False) -> None:
         data.update(found_data)
 
 
-def gather_files() -> list[Path]:
+def _gather_files() -> list[Path]:
     """Get the config files in the order to load them, including dotenv files."""
 
     return [
         Path(DEFAULT_FILE),
         Path(USER_FILE),
-        *env_etc_files(),
+        *_files_from_env(),
     ]
 
 
-def env_etc_files(
+def _files_from_env(
     env_key: str = OS_ENV_KEY,
     dotenv_fn: str = DOTENV_FILE,
     split_on: str = OS_ENV_KEY_SPLIT,
@@ -103,7 +103,7 @@ def env_etc_files(
 
     # Does it exist, if not try loading the dotenv file.
     if not (env_value := os.environ.get(env_key, None)):
-        if env_value := dotenv_from(dotenv_fn, env_key):
+        if env_value := _key_from_dotenv(dotenv_fn, env_key):
             logger.debug(
                 "Found and loaded key from dotenv file",
                 dotenv_fn=dotenv_fn,
@@ -128,7 +128,7 @@ def env_etc_files(
     return cfg_fns
 
 
-def dotenv_from(dotenv_fn: str, env_key: str) -> str | None:
+def _key_from_dotenv(dotenv_fn: str, env_key: str) -> str | None:
     """
     Load the `OS_ENV_KEY` from a dotenv file.
 
@@ -147,17 +147,17 @@ def dotenv_from(dotenv_fn: str, env_key: str) -> str | None:
     return c.get(env_key, None)
 
 
-def load_etc_data(*files: Path) -> tomlkit.TOMLDocument:
+def _load_files(*files: Path) -> tomlkit.TOMLDocument:
     """Load configurations from multiple files."""
 
     loaded_data: tomlkit.TOMLDocument = tomlkit.document()
     for fn in files:
-        loaded_data.update(load_etc_file(fn))
+        loaded_data.update(_load_file(fn))
 
     return loaded_data
 
 
-def load_etc_file(fn: Path) -> tomlkit.TOMLDocument:
+def _load_file(fn: Path) -> tomlkit.TOMLDocument:
     """Load configuration from one file."""
 
     with fn.open(mode="rb") as fp:
