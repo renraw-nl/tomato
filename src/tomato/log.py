@@ -96,6 +96,8 @@ def _init_cli_logger(
 ) -> None:
     """Setup logger for interactive command lines."""
 
+    _load_colors()
+
     logconfig: dict = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -155,7 +157,7 @@ def _init_cli_logger(
         + [
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
+            # structlog.processors.format_exc_info,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),
@@ -195,6 +197,22 @@ def _init_container_logger(
             # structlog.processors.JSONRenderer(serializer=json.dumps),
         ],
     )
+
+
+def _load_colors() -> None:
+    """
+    Try and load `colorama` to support colourful exception printina on windows only.
+    """
+
+    if sys.platform not in ["win32", "cygwin"]:
+        return
+
+    try:
+        from colorama import just_fix_windows_console
+
+        just_fix_windows_console()
+    except ImportError:
+        pass
 
 
 def loglevel_from_str(loglevel: str) -> int | None:
